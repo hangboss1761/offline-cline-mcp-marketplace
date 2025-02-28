@@ -1,0 +1,35 @@
+name: Sync MCP Services
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 每天0点执行一次
+  push:
+    branches:
+      - main
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '20'  # 或者你需要的 Node.js 版本
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run script
+        run: node src/index.js  # 运行你的脚本
+
+      - name: Commit and push changes
+        run: |
+          git add mcp_services.db
+          git commit -m "Update mcp_services.db" || echo "No changes to commit"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

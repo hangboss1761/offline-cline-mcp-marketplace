@@ -1,0 +1,17 @@
+{
+  "name": "offline-cline-mcp-marketplace",
+  "version": "1.0.0",
+  "description": "A project to periodically synchronize MCP servers from the official Cline Marketplace.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "p-limit": "^3.1.0",
+    "sqlite3": "^5.0.2"
+  },
+  "keywords": ["cline", "mcp", "mcp marketplace"],
+  "author": "hangboss1761",
+  "license": "ISC"
+}
