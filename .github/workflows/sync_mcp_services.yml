@@ -26,10 +26,15 @@ jobs:
       - name: Run script
         run: node src/index.js  # 运行你的脚本
 
+      - name: Configure Git
+        run: |
+          git config --global user.email "1240123692@qq.com"
+          git config --global user.name "hangboss1761"
+
       - name: Commit and push changes
         run: |
           git add mcp_services.db
-          git commit -m "Update mcp_services.db" || echo "No changes to commit"
+          git commit -m "Update mcp_services.db by github action" || echo "No changes to commit"
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
