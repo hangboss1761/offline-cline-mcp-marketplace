@@ -17,6 +17,10 @@ importers:
       sqlite3:
         specifier: ^5.0.2
         version: 5.1.7
+    devDependencies:
+      prettier:
+        specifier: ^3.5.2
+        version: 3.5.2
 
 packages:
 
@@ -359,6 +363,11 @@ packages:
   prebuild-install@7.1.3:
     resolution: {integrity: sha512-8Mf2cbV7x1cXPUILADGI3wuhfqWvtiLA1iclTDbFRZkgRQS0NqsPZphna9V+HyTEadheuPmjaJMsbzKQFOzLug==}
     engines: {node: '>=10'}
+    hasBin: true
+
+  prettier@3.5.2:
+    resolution: {integrity: sha512-lc6npv5PH7hVqozBR7lkBNOGXV9vMwROAPlumdBkX0wTbbzPu/U1hk5yL8p2pt4Xoc+2mkT8t/sow2YrV/M5qg==}
+    engines: {node: '>=14'}
     hasBin: true
 
   promise-inflight@1.0.1:
@@ -922,6 +931,8 @@ snapshots:
       simple-get: 4.0.1
       tar-fs: 2.1.2
       tunnel-agent: 0.6.0
+
+  prettier@3.5.2: {}
 
   promise-inflight@1.0.1:
     optional: true

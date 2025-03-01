@@ -4,9 +4,23 @@ const path = require('path');
 const axios = require('axios');
 const pLimit = require('p-limit');
 const sqlite3 = require('sqlite3').verbose();
+const fs_sync = require('fs');
 
-// Create SQLite database
-const db = new sqlite3.Database(path.join(process.cwd(), 'mcp_services.db'));
+// Database file path
+const dbPath = path.join(process.cwd(), 'mcp_services.db');
+
+// Delete existing database file (if exists)
+try {
+  if (fs_sync.existsSync(dbPath)) {
+    fs_sync.unlinkSync(dbPath);
+    console.log('Existing database file deleted');
+  }
+} catch (error) {
+  console.error('Error deleting database file:', error);
+}
+
+// Create new SQLite database
+const db = new sqlite3.Database(dbPath);
 
 // Initialize database
 db.serialize(() => {
@@ -24,7 +38,8 @@ db.serialize(() => {
         githubStars INTEGER,
         downloadCount INTEGER,
         createdAt TEXT,
-        updatedAt TEXT
+        updatedAt TEXT,
+        isDeleted INTEGER DEFAULT 0
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS service_details (
@@ -59,27 +74,35 @@ const saveMcpServices = async () => {
         const response = await axios.get('https://api.cline.bot/v1/mcp/marketplace'); // Replace with the actual API URL
         const services = response.data;
 
-        // Clear the services and service_details tables in the database
-        db.serialize(() => {
-            db.run(`DELETE FROM service_details`);
-            db.run(`DELETE FROM services`);
-        });
-
-        // Save the service list to SQLite database
-        const stmt = db.prepare(`INSERT OR REPLACE INTO services (mcpId, name, description, author, githubUrl, logoUrl, category, tags, requiresApiKey, isRecommended, githubStars, downloadCount, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+        // No need to clear tables as we've deleted the entire database file
 
         let savedServicesCount = 0; // Counter for services
         let savedDetailsCount = 0; // Counter for details
 
-        services.forEach(service => {
-            stmt.run(service.mcpId, service.name, service.description, service.author, service.githubUrl, service.logoUrl, service.category, JSON.stringify(service.tags), service.requiresApiKey, service.isRecommended, service.githubStars, service.downloadCount, service.createdAt, service.updatedAt);
-            console.log(`Saved MCP service: mcpId = ${service.mcpId}, name = ${service.name}`); // Log each saved service
-            savedServicesCount++; // Increment counter for each saved service
-        });
+        // Save services data using the same approach as service_details
+        const servicePromises = services.map(service =>
+            limit(async () => {
+                return new Promise((resolve, reject) => {
+                    db.run(
+                        `INSERT OR REPLACE INTO services (mcpId, name, description, author, githubUrl, logoUrl, category, tags, requiresApiKey, isRecommended, githubStars, downloadCount, createdAt, updatedAt, isDeleted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [service.mcpId, service.name, service.description, service.author, service.githubUrl, service.logoUrl, service.category, JSON.stringify(service.tags), service.requiresApiKey, service.isRecommended, service.githubStars, service.downloadCount, service.createdAt, service.updatedAt, 0],
+                        function(err) {
+                            if (err) {
+                                console.error(`Error saving service (mcpId: ${service.mcpId}):`, err);
+                                reject(err);
+                            } else {
+                                console.log(`Saved MCP service: mcpId = ${service.mcpId}, name = ${service.name}`);
+                                savedServicesCount++;
+                                resolve();
+                            }
+                        }
+                    );
+                });
+            })
+        );
 
-        stmt.finalize();
-
-        console.log(`Total of ${savedServicesCount} MCP services saved to the database.`); // Output the number of saved services
+        await Promise.all(servicePromises);
+        console.log(`Total of ${savedServicesCount} MCP services saved to the database.`);
 
         // Get service details and save to service_details table
         const detailsPromises = services.map(service =>
@@ -100,10 +123,18 @@ const saveMcpServices = async () => {
         );
 
         await Promise.all(detailsPromises);
-
         console.log(`Total of ${savedDetailsCount} MCP service details saved successfully.`); // Output the number of saved details
     } catch (error) {
         console.error('Error saving MCP services:', error);
+    } finally {
+        // Close database connection
+        db.close(err => {
+            if (err) {
+              console.error("Error closing database:", err);
+            } else {
+              console.log("Database connection closed");
+            }
+        });
     }
 };
 
